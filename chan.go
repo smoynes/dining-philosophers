@@ -4,16 +4,18 @@ import (
 	"sync"
 )
 
+const NUM_PHILOSOPHERS = 5
+
 type fork struct{}
 
 type Philosopher struct {
-	id    int
-	count int
+	Id    int
+	Count int
 	left  chan fork
 	right chan fork
 }
 
-func (p *Philosopher) loop(wg sync.WaitGroup) {
+func (p *Philosopher) Loop(wg *sync.WaitGroup) {
 	wg.Wait()
 	for {
 		p.eat()
@@ -22,7 +24,7 @@ func (p *Philosopher) loop(wg sync.WaitGroup) {
 }
 
 func (p *Philosopher) eat() {
-	if p.id == NUM_PHILOSOPHERS-1 {
+	if p.Id == NUM_PHILOSOPHERS-1 {
 		<-p.right
 		<-p.left
 	} else {
@@ -32,7 +34,7 @@ func (p *Philosopher) eat() {
 }
 
 func (p *Philosopher) think() {
-	p.count += 1
+	p.Count += 1
 	p.right <- fork{}
 	p.left <- fork{}
 }
@@ -42,7 +44,7 @@ func NewChannelPhilosopher() []Philosopher {
 	ps := make([]Philosopher, NUM_PHILOSOPHERS)
 	for i := 0; i < NUM_PHILOSOPHERS; i++ {
 		ps[i] = Philosopher{
-			id:    i,
+			Id:    i,
 			left:  fs[i],
 			right: fs[(i+1)%NUM_PHILOSOPHERS]}
 	}
