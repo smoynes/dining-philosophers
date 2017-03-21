@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+const NUM_PHILOSOPHERS = 5
+
+var wg sync.WaitGroup
+
 type fork struct{}
 
 type Philosopher struct {
@@ -13,22 +17,6 @@ type Philosopher struct {
 	count int
 	left  chan fork
 	right chan fork
-}
-
-func (p *Philosopher) eat() {
-	if (p.id % 2) == 0 {
-		<-p.left
-		<-p.right
-	} else {
-		<-p.right
-		<-p.left
-	}
-}
-
-func (p *Philosopher) think() {
-	p.right <- fork{}
-	p.left <- fork{}
-	p.count += 1
 }
 
 func (p *Philosopher) loop() {
@@ -39,15 +27,28 @@ func (p *Philosopher) loop() {
 	}
 }
 
-var wg sync.WaitGroup
+func (p *Philosopher) eat() {
+	if p.id == NUM_PHILOSOPHERS-1 {
+		<-p.right
+		<-p.left
+	} else {
+		<-p.left
+		<-p.right
+	}
+}
+
+func (p *Philosopher) think() {
+	p.count += 1
+	p.right <- fork{}
+	p.left <- fork{}
+}
 
 func main() {
 	ps := newPhilosophers()
-
 	wg.Add(1)
 
-	for _, p := range ps {
-		go p.loop()
+	for i, _ := range ps {
+		go ps[i].loop()
 	}
 
 	wg.Done()
@@ -59,20 +60,21 @@ func main() {
 	}
 }
 
-func newPhilosophers() (ps [5]*Philosopher) {
+func newPhilosophers() []Philosopher {
 	fs := newForks()
-
-	for i := 0; i < 5; i++ {
-		ps[i] = &Philosopher{
+	ps := make([]Philosopher, NUM_PHILOSOPHERS)
+	for i := 0; i < NUM_PHILOSOPHERS; i++ {
+		ps[i] = Philosopher{
 			id:    i,
 			left:  fs[i],
-			right: fs[(i+1)%5]}
+			right: fs[(i+1)%NUM_PHILOSOPHERS]}
 	}
-	return
+	return ps
 }
 
-func newForks() (fs [5]chan fork) {
-	for i := 0; i < 5; i++ {
+func newForks() []chan fork {
+	fs := make([]chan fork, NUM_PHILOSOPHERS)
+	for i := 0; i < NUM_PHILOSOPHERS; i++ {
 		fs[i] = make(chan fork, 1)
 		fs[i] <- fork{}
 	}
